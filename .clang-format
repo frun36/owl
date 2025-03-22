@@ -23,6 +23,7 @@ AlignAfterOpenBracket: Align
 AlignOperands: true
 AlignEscapedNewlines: Left
 AlignArrayOfStructures: Left
+SeparateDefinitionBlocks: Always
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SpacesInAngles: false
