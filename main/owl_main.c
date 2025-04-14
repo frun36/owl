@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "driver/gpio.h"
@@ -90,36 +91,49 @@ static void handle_uart_command(const char *data, size_t n)
     }
 }
 
+static void get_line(char *const buf, size_t len)
+{
+    char *ptr = buf;
+    fpurge(stdin);
+    while (1) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        *ptr = getc(stdin);
+
+        switch (*ptr) {
+        case '\0':
+        case (char) 0xFF:
+        case '\r':
+            continue;
+
+        case '\n':
+            *ptr = '\0';
+            return;
+
+        case '\b':
+            if (ptr != buf) {
+                ptr--;
+            }
+            break;
+
+        default:
+            ptr++;
+        }
+
+        if (ptr - buf >= len - 1) {
+            ptr++;
+            *ptr = '\0';
+            return;
+        }
+    }
+}
+
 static void uart_task(void *arg)
 {
-    uart_config_t uart_config = {
-        .baud_rate = 115200, // monitor won't work with other speeds!
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .source_clk = UART_SCLK_DEFAULT,
-    };
-    int intr_alloc_flags = 0;
-
-    ESP_ERROR_CHECK(uart_driver_install(ECHO_UART_PORT_NUM, BUF_SIZE * 2, 0, 0, NULL, intr_alloc_flags));
-    ESP_ERROR_CHECK(uart_param_config(ECHO_UART_PORT_NUM, &uart_config));
-    ESP_ERROR_CHECK(uart_set_pin(ECHO_UART_PORT_NUM, ECHO_TEST_TXD, ECHO_TEST_RXD, ECHO_TEST_RTS, ECHO_TEST_CTS));
-
-    uint8_t *data = (uint8_t *) malloc(BUF_SIZE);
-    uint32_t data_size = 0;
-
+    char buf[256] = {};
     while (1) {
-        int len =
-            uart_read_bytes(ECHO_UART_PORT_NUM, data + data_size, (BUF_SIZE - data_size - 1), 20 / portTICK_PERIOD_MS);
-        uart_write_bytes(ECHO_UART_PORT_NUM, (const char *) data + data_size, len);
-        data_size += len;
-        if (data[data_size - 1] == '\r') {
-            data[data_size] = '\0';
-            ESP_LOGI(TAG, "Received command: %s", (char *) data);
-            handle_uart_command((const char *) data, data_size - 1);
-            data_size = 0;
-        }
+        get_line(buf, 256);
+        handle_uart_command(buf, 256);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
