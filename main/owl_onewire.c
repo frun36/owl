@@ -1,0 +1,50 @@
+#include "esp_log.h"
+#include "owl_led.h"
+
+#include "onewire_bus.h"
+#include "onewire_device.h"
+#include "onewire_types.h"
+
+#define TAG "owl_onewire"
+
+onewire_bus_handle_t s_bus;
+
+onewire_bus_handle_t configure_onewire(int bus_gpio_num)
+{
+    onewire_bus_config_t bus_config = {
+        .bus_gpio_num = bus_gpio_num,
+    };
+    onewire_bus_rmt_config_t rmt_config = {
+        .max_rx_bytes = 10, // 1byte ROM command + 8byte ROM number + 1byte device command
+    };
+    ESP_ERROR_CHECK(onewire_new_bus_rmt(&bus_config, &rmt_config, &s_bus));
+    ESP_LOGI(TAG, "1-Wire bus configured on GPIO%d", bus_gpio_num);
+    return s_bus;
+}
+
+size_t onewire_search(onewire_device_address_t buff[], size_t max_devices)
+{
+    led_on();
+    onewire_device_iter_handle_t iter = NULL;
+    onewire_device_t next_onewire_device;
+    esp_err_t search_result = ESP_OK;
+    size_t device_count = 0;
+    onewire_device_address_t *buff_ptr = buff;
+
+    ESP_ERROR_CHECK(onewire_new_device_iter(s_bus, &iter));
+    do {
+        if (device_count >= max_devices) {
+            break;
+        }
+
+        search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
+        if (search_result == ESP_OK) {
+            *buff_ptr++ = next_onewire_device.address;
+            device_count++;
+        }
+    } while (search_result != ESP_ERR_NOT_FOUND);
+
+    ESP_ERROR_CHECK(onewire_del_device_iter(iter));
+    led_off();
+    return device_count;
+}
