@@ -1,19 +1,21 @@
+#include <assert.h>
 #include <inttypes.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "driver/gpio.h"
-#include "driver/uart.h"
 #include "esp_log.h"
 
 #include "onewire_bus.h"
 #include "onewire_device.h"
 #include "onewire_types.h"
 
+#include "button_gpio.h"
+#include "iot_button.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #define BOARD_LED 2
+#define BUTTON 22
 #define ONEWIRE_BUS 23
 
 static const char *TAG = "owl";
@@ -72,69 +74,19 @@ static void onewire_search()
     led_off();
 }
 
-#define ECHO_TEST_TXD 1
-#define ECHO_TEST_RXD 3
-#define ECHO_UART_PORT_NUM 0
-#define BUF_SIZE 2048
-#define ECHO_TEST_RTS UART_PIN_NO_CHANGE
-#define ECHO_TEST_CTS UART_PIN_NO_CHANGE
-#define ECHO_TASK_STACK_SIZE 4096
-
-static void handle_uart_command(const char *data, size_t n)
+static void button_single_click_cb(void *arg, void *usr_data)
 {
-    if (n == 0) {
-        ESP_LOGE(TAG, "Received empty command");
-    } else if (strncmp(data, "run", n) == 0) {
-        onewire_search();
-    } else {
-        ESP_LOGE(TAG, "Unsupported command");
-    }
+    onewire_search();
 }
 
-static void get_line(char *const buf, size_t len)
+static void button_double_click_cb(void *arg, void *usr_data)
 {
-    char *ptr = buf;
-    fpurge(stdin);
-    while (1) {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-        *ptr = getc(stdin);
-
-        switch (*ptr) {
-        case '\0':
-        case (char) 0xFF:
-        case '\r':
-            continue;
-
-        case '\n':
-            *ptr = '\0';
-            return;
-
-        case '\b':
-            if (ptr != buf) {
-                ptr--;
-            }
-            break;
-
-        default:
-            ptr++;
-        }
-
-        if (ptr - buf >= len - 1) {
-            ptr++;
-            *ptr = '\0';
-            return;
-        }
-    }
+    ESP_LOGW(TAG, "BUTTON_DOUBLE_CLICK");
 }
 
-static void uart_task(void *arg)
+static void button_long_press_cb(void *arg, void *usr_data)
 {
-    char buf[256] = {};
-    while (1) {
-        get_line(buf, 256);
-        handle_uart_command(buf, 256);
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
+    ESP_LOGW(TAG, "BUTTON_LONG_PRESS_START");
 }
 
 void app_main(void)
@@ -144,5 +96,18 @@ void app_main(void)
     configure_onewire();
     led_off();
 
-    xTaskCreate(uart_task, "uart_task", ECHO_TASK_STACK_SIZE, NULL, 10, NULL);
+    button_config_t btn_cfg = {0};
+    button_gpio_config_t gpio_cfg = {
+        .gpio_num = BUTTON,
+        .active_level = 0,
+        .enable_power_save = false,
+    };
+
+    button_handle_t btn;
+    esp_err_t ret = iot_button_new_gpio_device(&btn_cfg, &gpio_cfg, &btn);
+    assert(ret == ESP_OK);
+
+    iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, NULL, button_single_click_cb, NULL);
+    iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_double_click_cb, NULL);
+    iot_button_register_cb(btn, BUTTON_LONG_PRESS_START, NULL, button_long_press_cb, NULL);
 }
