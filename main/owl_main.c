@@ -30,26 +30,26 @@ static void owl_task(void *arg)
 
     while (1) {
         char *response_ptr = response_buff;
-        if (xQueueReceive(button_event_queue, &e, portMAX_DELAY)) {
+        if (xQueueReceive(owl_button_event_queue, &e, portMAX_DELAY)) {
             switch (e) {
-                case OWL_BUTTON_SINGLE_CLICK:
-                    count = onewire_search(address_buff, MAX_ONEWIRE_DEVICES);
+            case OWL_BUTTON_SINGLE_CLICK:
+                count = owl_onewire_search(address_buff, MAX_ONEWIRE_DEVICES);
 
-                    for (size_t i = 0; i < count; i++) {
-                        ESP_LOGI(TAG, "Found device #%zu: %llX", i, address_buff[i]);
-                        response_ptr += sprintf(response_ptr, "%llX\n", address_buff[i]);
-                    }
-                    *response_ptr = '\0';
-                    ws_send(response_buff);
-                    break;
-                case OWL_BUTTON_DOUBLE_CLICK:
-                    ESP_LOGW(TAG, "Double click");
-                    break;
-                case OWL_BUTTON_LONG_PRESS:
-                    ESP_LOGW(TAG, "Long press");
-                    break;
-                default:
-                    ESP_LOGW(TAG, "Unexpected button event");
+                for (size_t i = 0; i < count; i++) {
+                    ESP_LOGI(TAG, "Found device #%zu: %" PRIu64 "X", i, address_buff[i]);
+                    response_ptr += sprintf(response_ptr, "%" PRIu64 "X\n", address_buff[i]);
+                }
+                *response_ptr = '\0';
+                owl_ws_send(response_buff);
+                break;
+            case OWL_BUTTON_DOUBLE_CLICK:
+                ESP_LOGW(TAG, "Double click");
+                break;
+            case OWL_BUTTON_LONG_PRESS:
+                ESP_LOGW(TAG, "Long press");
+                break;
+            default:
+                ESP_LOGW(TAG, "Unexpected button event");
             }
         }
     }
@@ -68,12 +68,12 @@ static void init_nvs()
 void app_main(void)
 {
     ESP_LOGI(TAG, "Helou");
-    configure_led();
-    configure_onewire(ONEWIRE_BUS_GPIO);
-    led_off();
+    owl_init_led();
+    owl_init_onewire(ONEWIRE_BUS_GPIO);
     owl_init_button(BUTTON_GPIO);
+
     init_nvs();
-    init_softap_server();
+    owl_init_softap_server();
 
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);
 }

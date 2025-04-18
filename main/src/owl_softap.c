@@ -138,7 +138,7 @@ static httpd_handle_t start_webserver(void)
     return server;
 }
 
-void ws_send(const char *message)
+void owl_ws_send(const char *message)
 {
     if (ws_fd < 0 || server_handle == NULL) {
         ESP_LOGW(TAG, "No active WS connection");
@@ -158,7 +158,7 @@ void ws_send(const char *message)
     }
 }
 
-void init_softap_server()
+void owl_init_softap_server()
 {
     wifi_init_softap();
     server_handle = start_webserver();

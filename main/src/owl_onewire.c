@@ -9,7 +9,7 @@
 
 onewire_bus_handle_t s_bus;
 
-onewire_bus_handle_t configure_onewire(int bus_gpio_num)
+onewire_bus_handle_t owl_init_onewire(int bus_gpio_num)
 {
     onewire_bus_config_t bus_config = {
         .bus_gpio_num = bus_gpio_num,
@@ -22,9 +22,9 @@ onewire_bus_handle_t configure_onewire(int bus_gpio_num)
     return s_bus;
 }
 
-size_t onewire_search(onewire_device_address_t buff[], size_t max_devices)
+size_t owl_onewire_search(onewire_device_address_t buff[], size_t max_devices)
 {
-    led_on();
+    owl_led_on();
     onewire_device_iter_handle_t iter = NULL;
     onewire_device_t next_onewire_device;
     esp_err_t search_result = ESP_OK;
@@ -48,6 +48,6 @@ size_t onewire_search(onewire_device_address_t buff[], size_t max_devices)
     }
 
     ESP_ERROR_CHECK(onewire_del_device_iter(iter));
-    led_off();
+    owl_led_off();
     return device_count;
 }
