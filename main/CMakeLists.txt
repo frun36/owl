@@ -1,2 +1,2 @@
-idf_component_register(SRCS "owl_main.c" "owl_led.c" "owl_onewire.c"
-                    INCLUDE_DIRS "")
+idf_component_register(SRCS "owl_main.c" "src/owl_led.c" "src/owl_onewire.c"
+                    INCLUDE_DIRS "include/")
