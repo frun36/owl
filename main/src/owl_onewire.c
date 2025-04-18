@@ -32,17 +32,20 @@ size_t onewire_search(onewire_device_address_t buff[], size_t max_devices)
     onewire_device_address_t *buff_ptr = buff;
 
     ESP_ERROR_CHECK(onewire_new_device_iter(s_bus, &iter));
-    do {
-        if (device_count >= max_devices) {
+    while (1) {
+        search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
+        if (search_result != ESP_OK) {
             break;
         }
 
-        search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
-        if (search_result == ESP_OK) {
-            *buff_ptr++ = next_onewire_device.address;
-            device_count++;
+        if (device_count >= max_devices) {
+            ESP_LOGW(TAG, "Reached max device count: aborting");
+            break;
         }
-    } while (search_result != ESP_ERR_NOT_FOUND);
+
+        *buff_ptr++ = next_onewire_device.address;
+        device_count++;
+    }
 
     ESP_ERROR_CHECK(onewire_del_device_iter(iter));
     led_off();
