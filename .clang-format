@@ -9,7 +9,7 @@ BraceWrapping:
   AfterClass: false
   AfterNamespace: true
   AfterControlStatement: false
-AllowShortBlocksOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLoopsOnASingleLine: true
