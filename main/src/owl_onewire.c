@@ -15,7 +15,8 @@ onewire_bus_handle_t owl_init_onewire(int bus_gpio_num)
         .bus_gpio_num = bus_gpio_num,
     };
     onewire_bus_rmt_config_t rmt_config = {
-        .max_rx_bytes = 10, // 1byte ROM command + 8byte ROM number + 1byte device command
+        // 1byte ROM command + 8byte ROM number + 1byte device command
+        .max_rx_bytes = 10,
     };
     ESP_ERROR_CHECK(onewire_new_bus_rmt(&bus_config, &rmt_config, &s_bus));
     ESP_LOGI(TAG, "1-Wire bus configured on GPIO%d", bus_gpio_num);
@@ -33,7 +34,8 @@ size_t owl_onewire_search(onewire_device_address_t buff[], size_t max_devices)
 
     ESP_ERROR_CHECK(onewire_new_device_iter(s_bus, &iter));
     while (1) {
-        search_result = onewire_device_iter_get_next(iter, &next_onewire_device);
+        search_result
+            = onewire_device_iter_get_next(iter, &next_onewire_device);
         if (search_result != ESP_OK) {
             break;
         }

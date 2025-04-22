@@ -3,7 +3,7 @@
 
 #include "driver/gpio.h"
 
-static const char* TAG = "owl_led";
+static const char *TAG = "owl_led";
 
 #define BOARD_LED_GPIO 2
 

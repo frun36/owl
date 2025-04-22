@@ -31,7 +31,7 @@ static void button_long_press_cb(void *arg, void *usr_data)
 void owl_init_button(int32_t gpio_num)
 {
     owl_button_event_queue = xQueueCreate(4, sizeof(int));
-    button_config_t btn_cfg = {0};
+    button_config_t btn_cfg = { 0 };
     button_gpio_config_t gpio_cfg = {
         .gpio_num = gpio_num,
         .active_level = 0,
@@ -41,9 +41,12 @@ void owl_init_button(int32_t gpio_num)
     button_handle_t btn;
     ESP_ERROR_CHECK(iot_button_new_gpio_device(&btn_cfg, &gpio_cfg, &btn));
 
-    ESP_ERROR_CHECK(iot_button_register_cb(btn, BUTTON_SINGLE_CLICK, NULL, button_single_click_cb, NULL));
-    ESP_ERROR_CHECK(iot_button_register_cb(btn, BUTTON_DOUBLE_CLICK, NULL, button_double_click_cb, NULL));
-    ESP_ERROR_CHECK(iot_button_register_cb(btn, BUTTON_LONG_PRESS_START, NULL, button_long_press_cb, NULL));
+    ESP_ERROR_CHECK(iot_button_register_cb(
+        btn, BUTTON_SINGLE_CLICK, NULL, button_single_click_cb, NULL));
+    ESP_ERROR_CHECK(iot_button_register_cb(
+        btn, BUTTON_DOUBLE_CLICK, NULL, button_double_click_cb, NULL));
+    ESP_ERROR_CHECK(iot_button_register_cb(
+        btn, BUTTON_LONG_PRESS_START, NULL, button_long_press_cb, NULL));
 
     ESP_LOGI(TAG, "Initialized button (GPIO%" PRIi32 ")", gpio_num);
 }

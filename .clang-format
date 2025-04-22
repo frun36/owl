@@ -2,37 +2,17 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 120
+ColumnLimit: 80
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true
-  AfterClass: false
-  AfterNamespace: true
   AfterControlStatement: false
-AllowShortBlocksOnASingleLine: Empty
-AllowShortFunctionsOnASingleLine: Inline
-AllowShortIfStatementsOnASingleLine: WithoutElse
-AllowShortLoopsOnASingleLine: true
-AlwaysBreakTemplateDeclarations: No
-BinPackParameters: true
-BinPackArguments: true
-AlignTrailingComments: true
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
-AlignAfterOpenBracket: Align
-AlignOperands: true
-AlignEscapedNewlines: Left
-AlignArrayOfStructures: Left
-SeparateDefinitionBlocks: Always
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-SpacesInAngles: false
-SpaceBeforeAssignmentOperators: true
+Cpp11BracedListStyle: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: All
+AllowShortFunctionsOnASingleLine: false
 SpaceBeforeParens: ControlStatements
 SpaceAfterCStyleCast: true
-SpaceBeforeSquareBrackets: false
-KeepEmptyLinesAtTheStartOfBlocks: false
-NamespaceIndentation: All
-ReflowComments: false
 SortIncludes: true
 IncludeBlocks: Preserve
