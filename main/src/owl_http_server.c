@@ -93,7 +93,7 @@ static httpd_handle_t start_webserver(void)
 void owl_ws_send(const char *message)
 {
     if (ws_fd < 0 || server_handle == NULL) {
-        ESP_LOGW(TAG, "No active WS connection");
+        ESP_LOGE(TAG, "No active WS connection");
         return;
     }
 
