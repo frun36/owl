@@ -3,39 +3,52 @@
 
 <head>
     <title>OWL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        * {
-            font-family: Courier New;
-        }
+        * { font-family: 'Courier New', monospace; margin: 0; padding: 4px; }
+        #output { height: 200px; border: 1px solid; overflow-y: auto; resize: vertical; }
+        body { margin: auto; max-width: 800px; padding: 8px; }
+        article { display: flex; }
+        article * { display: flex; flex-direction: column; }
+        button { margin-top: 8px; }
+        @media (max-width: 600px) { article { flex-direction: column; } }
     </style>
 </head>
 
 <body>
-    <h1>OWL</h1>
-    <div>
-        <h3>Device history:</h3>
-        <div id="devices" style="border: 2px solid; min-height: 100px; max-width: 500px;"></div>
-        <button onclick="document.getElementById('devices').innerHTML = ''">Clear</button>
-        <script>
-            const ws = new WebSocket('ws://' + location.host + '/ws');
-            ws.onmessage = e => document.getElementById("devices").innerHTML += '<br>' + e.data;
-        </script>
-    </div>
+    <header>
+        <h1>OWL</h1>
+    </header>
 
-    <hr>
+    <script>
+        function addLine(data) {
+            const box = document.getElementById("output");
+            box.innerHTML += `[${new Date().toTimeString().slice(0, 8)}] ${data}<br>`;
+            box.scrollTop = box.scrollHeight;
+        }
+        const ws = new WebSocket('ws://' + location.host + '/ws');
+        ws.onmessage = e => addLine(e.data);
+        
+    </script>
 
-    <div>
-        <h3>Config</h3>
-        <form action="/config" method="POST">
-            <label for="ssid">SSID:</label>
-            <input type="text" id="ssid" name="ssid" required />
+    <article>
+        <div style="flex: 1;">
+            <h3>Device history</h3>
+            <div id="output"></div>
+            <button onclick="document.getElementById('output').innerHTML = ''">Clear</button>
+        </div>
 
-            <label for="pass">Password:</label>
-            <input type="password" id="pass" name="pass" required />
-
-            <button type="submit">Connect</button>
-        </form>
-    </div>
+        <div>
+            <h3>Config</h3>
+            <form action="/config" method="POST">
+                <label for="ssid">SSID:</label>
+                <input type="text" id="ssid" name="ssid" required />
+                <label for="pass">Password:</label>
+                <input type="password" id="pass" name="pass" required />
+                <button type="submit">Update</button>
+            </form>
+        </div>
+    </article>
 </body>
 
 </html>
