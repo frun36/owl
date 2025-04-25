@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OWL</title>
+    <style>
+        * {
+            font-family: Courier New;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>OWL</h1>
+    <div>
+        <h3>Device history:</h3>
+        <div id="devices" style="border: 2px solid; min-height: 100px; max-width: 500px;"></div>
+        <button onclick="document.getElementById('devices').innerHTML = ''">Clear</button>
+        <script>
+            const ws = new WebSocket('ws://' + location.host + '/ws');
+            ws.onmessage = e => document.getElementById("devices").innerHTML += '<br>' + e.data;
+        </script>
+    </div>
+
+    <hr>
+
+    <div>
+        <h3>Config</h3>
+        <form action="/config" method="POST">
+            <label for="ssid">SSID:</label>
+            <input type="text" id="ssid" name="ssid" required />
+
+            <label for="pass">Password:</label>
+            <input type="password" id="pass" name="pass" required />
+
+            <button type="submit">Connect</button>
+        </form>
+    </div>
+</body>
+
+</html>
