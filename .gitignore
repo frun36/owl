@@ -2,4 +2,4 @@ build/
 .cache/
 compile_commands.json
 managed_components/
-main/include/secrets.inc
+main/secrets.inc

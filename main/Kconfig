@@ -1,0 +1,15 @@
+menu "OWL"
+
+config OWL_DEV_WIFI_CREDENTIALS
+    bool "Preconfigure WiFi credentials"
+    default n
+    help
+      If enabled, will preconfigure WiFi SSID and password according to `main/secrets.inc`:
+      ```
+      // Example file structure
+      ssid = "ExampleSSID";
+      pass = "ExamplePASS";
+      ```
+      If disabled, the default credentials will be empty.
+
+endmenu

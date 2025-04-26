@@ -28,7 +28,7 @@ static void owl_task(void *arg)
                        + 1]; // 16 char address, newline, null terminator
     size_t count;
 
-    static int mode = 0;
+    static int mode = 1;
 
     while (1) {
         char *response_ptr = response_buff;
@@ -48,10 +48,10 @@ static void owl_task(void *arg)
                 break;
             case OWL_BUTTON_DOUBLE_CLICK:
                 if (mode) {
-                    owl_start_softap();
+                    owl_apsta();
                     mode = 0;
                 } else {
-                    owl_start_station();
+                    owl_sta();
                     mode = 1;
                 }
                 ESP_LOGW(TAG, "Double click");
@@ -74,8 +74,9 @@ void app_main(void)
     owl_init_button(BUTTON_GPIO);
 
     owl_init_wifi();
-    owl_start_softap();
-    // owl_start_station();
+    owl_configure_wifi();
+    // owl_start_softap();
+    owl_sta();
     owl_init_http_server();
 
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);

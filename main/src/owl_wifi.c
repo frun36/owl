@@ -79,10 +79,32 @@ void owl_init_wifi(void)
              MAC2STR(mac_ap));
 }
 
-void owl_start_softap(void)
+void owl_configure_wifi(void)
 {
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+
+    // Configure STA
+    static const char *ssid = "", *pass = "";
+
+#ifdef CONFIG_OWL_DEV_WIFI_CREDENTIALS
+#include "secrets.inc"
+#endif
+
+    wifi_config_t sta_config = {
+        .sta = {
+            .ssid = "",
+            .password = "",
+        },
+    };
+    strncpy((char *) sta_config.sta.ssid, ssid, sizeof(sta_config.sta.ssid));
+    strncpy((char *) sta_config.sta.password,
+            pass,
+            sizeof(sta_config.sta.password));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
+
+    // Configure SoftAP
     // clang-format off
-    wifi_config_t wifi_config = {
+    wifi_config_t softap_config = {
         .ap = {
             .ssid = SOFTAP_SSID,
             .ssid_len = strlen(SOFTAP_SSID),
@@ -98,12 +120,15 @@ void owl_start_softap(void)
     // clang-format on
 
     if (strlen(SOFTAP_PASS) == 0) {
-        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+        softap_config.ap.authmode = WIFI_AUTH_OPEN;
     }
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &softap_config));
+}
 
+void owl_apsta(void)
+{
     ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG,
@@ -113,23 +138,9 @@ void owl_start_softap(void)
              SOFTAP_CH);
 }
 
-void owl_start_station(void)
+void owl_sta(void)
 {
-    #include "secrets.inc"
-
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = "",
-            .password = "",
-        },
-    };
-    strncpy((char *) wifi_config.sta.ssid, ssid, sizeof(wifi_config.sta.ssid));
-    strncpy((char *) wifi_config.sta.password,
-            password,
-            sizeof(wifi_config.sta.password));
-
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 }
