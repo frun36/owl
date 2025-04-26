@@ -1,7 +1,7 @@
 menu "OWL"
 
-config OWL_DEV_WIFI_CREDENTIALS
-    bool "Preconfigure WiFi credentials"
+config OWL_DEV
+    bool "Development mode"
     default n
     help
       If enabled, will preconfigure WiFi SSID and password according to `main/secrets.inc`:
@@ -11,5 +11,41 @@ config OWL_DEV_WIFI_CREDENTIALS
       pass = "ExamplePASS";
       ```
       If disabled, the default credentials will be empty.
+
+config OWL_WIFI_SSID
+    string "WiFi SSID"
+    default ""
+    help
+      SSID to use when connecting to WiFi network in STA mode
+
+config OWL_WIFI_PASS
+    string "WiFi password"
+    default ""
+    help
+      Password to use when connecting to WiFi network in STA mode
+
+config OWL_SOFTAP_SSID
+    string "SoftAP SSID"
+    default "OWL"
+    help
+      SSID for SoftAP mode
+
+config OWL_SOFTAP_PASS
+    string "SoftAP password"
+    default "FR4#1UL4"
+    help
+      Password for SoftAP mode
+
+config OWL_SOFTAP_CH
+    int "SoftAP WiFi channel"
+    default 6
+    help
+      WiFi channel for SoftAP mode
+
+config OWL_SOFTAP_MAX_CONN
+    int "SoftAP max connections"
+    default 4
+    help
+      Max number of connected stations for SoftAP mode    
 
 endmenu

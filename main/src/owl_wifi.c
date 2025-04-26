@@ -12,12 +12,15 @@
 #include <stdint.h>
 #include <string.h>
 
+#define WIFI_SSID CONFIG_OWL_WIFI_SSID
+#define WIFI_PASS CONFIG_OWL_WIFI_PASS
+
 static const char *TAG = "owl_wifi";
 
-#define SOFTAP_SSID "OWL"
-#define SOFTAP_PASS "FR4#1UL4"
-#define SOFTAP_CH 6
-#define SOFTAP_MAX_CONN 4
+#define SOFTAP_SSID CONFIG_OWL_SOFTAP_SSID
+#define SOFTAP_PASS CONFIG_OWL_SOFTAP_PASS
+#define SOFTAP_CH CONFIG_OWL_SOFTAP_CH
+#define SOFTAP_MAX_CONN CONFIG_OWL_SOFTAP_MAX_CONN
 
 static void wifi_event_handler(void *arg,
                                esp_event_base_t event_base,
@@ -84,9 +87,9 @@ void owl_configure_wifi(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
 
     // Configure STA
-    static const char *ssid = "", *pass = "";
+    static const char *ssid = WIFI_SSID, *pass = WIFI_PASS;
 
-#ifdef CONFIG_OWL_DEV_WIFI_CREDENTIALS
+#ifdef CONFIG_OWL_DEV
 #include "secrets.inc"
 #endif
 
