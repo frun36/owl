@@ -134,11 +134,7 @@ void owl_apsta(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG,
-             "Initialized Wi-Fi SoftAP. SSID: %s PASS: %s CH: %d",
-             SOFTAP_SSID,
-             SOFTAP_PASS,
-             SOFTAP_CH);
+    ESP_LOGI(TAG, "APSTA mode");
 }
 
 void owl_sta(void)
@@ -146,4 +142,6 @@ void owl_sta(void)
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(TAG, "STA mode");
 }

@@ -1,5 +1,4 @@
 #include "esp_log.h"
-#include "owl_led.h"
 
 #include "onewire_bus.h"
 #include "onewire_device.h"
@@ -25,7 +24,6 @@ onewire_bus_handle_t owl_init_onewire(int bus_gpio_num)
 
 size_t owl_onewire_search(onewire_device_address_t buff[], size_t max_devices)
 {
-    owl_led_on();
     onewire_device_iter_handle_t iter = NULL;
     onewire_device_t next_onewire_device;
     esp_err_t search_result = ESP_OK;
@@ -50,6 +48,5 @@ size_t owl_onewire_search(onewire_device_address_t buff[], size_t max_devices)
     }
 
     ESP_ERROR_CHECK(onewire_del_device_iter(iter));
-    owl_led_off();
     return device_count;
 }

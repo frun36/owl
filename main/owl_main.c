@@ -4,6 +4,7 @@
 
 #include "esp_log.h"
 
+#include "freertos/projdefs.h"
 #include "owl_button.h"
 #include "owl_http_server.h"
 #include "owl_led.h"
@@ -24,18 +25,18 @@ static void owl_task(void *arg)
 {
     owl_button_event_t e;
     onewire_device_address_t address_buff[MAX_ONEWIRE_DEVICES];
-    char response_buff[MAX_ONEWIRE_DEVICES * 17
-                       + 1]; // 16 char address, newline, null terminator
+    // 16 char address, newline, null terminator
+    char response_buff[MAX_ONEWIRE_DEVICES * 17 + 1];
     size_t count;
-
-    static int mode = 1;
 
     while (1) {
         char *response_ptr = response_buff;
         if (xQueueReceive(owl_button_event_queue, &e, portMAX_DELAY)) {
             switch (e) {
             case OWL_BUTTON_SINGLE_CLICK:
+                owl_led_on();
                 count = owl_onewire_search(address_buff, MAX_ONEWIRE_DEVICES);
+                owl_led_off();
 
                 for (size_t i = 0; i < count; i++) {
                     ESP_LOGI(
@@ -47,17 +48,14 @@ static void owl_task(void *arg)
                 owl_ws_send(response_buff);
                 break;
             case OWL_BUTTON_DOUBLE_CLICK:
-                if (mode) {
-                    owl_apsta();
-                    mode = 0;
-                } else {
-                    owl_sta();
-                    mode = 1;
-                }
-                ESP_LOGW(TAG, "Double click");
+                owl_led_blink(10);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                owl_sta();
+                owl_led_blink_off();
                 break;
             case OWL_BUTTON_LONG_PRESS:
-                ESP_LOGW(TAG, "Long press");
+                owl_apsta();
+                owl_led_blink(500);
                 break;
             default:
                 ESP_LOGW(TAG, "Unexpected button event");
@@ -75,7 +73,6 @@ void app_main(void)
 
     owl_init_wifi();
     owl_configure_wifi();
-    // owl_start_softap();
     owl_sta();
     owl_init_http_server();
 
