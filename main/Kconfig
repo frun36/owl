@@ -48,4 +48,22 @@ config OWL_SOFTAP_MAX_CONN
     help
       Max number of connected stations for SoftAP mode    
 
+config OWL_LED_GPIO
+    int "LED GPIO"
+    default 2
+    help
+      LED GPIO number
+
+config OWL_BUTTON_GPIO
+    int "Button GPIO"
+    default 36
+    help
+      Button GPIO number
+
+config OWL_ONEWIRE_BUS_GPIO
+    int "OneWire bus GPIO"
+    default 23
+    help
+      OneWire bus GPIO number
+
 endmenu

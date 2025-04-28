@@ -15,9 +15,10 @@
 #include "freertos/task.h"
 #include "portmacro.h"
 
-#define BUTTON_GPIO 22
-#define ONEWIRE_BUS_GPIO 23
-#define MAX_ONEWIRE_DEVICES 4
+#define BUTTON_GPIO CONFIG_OWL_BUTTON_GPIO
+#define ONEWIRE_BUS_GPIO CONFIG_OWL_ONEWIRE_BUS_GPIO
+
+#define MAX_ONEWIRE_DEVICES 1
 
 static const char *TAG = "owl";
 

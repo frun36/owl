@@ -8,7 +8,7 @@
 
 static const char *TAG = "owl_led";
 
-#define BOARD_LED_GPIO 2
+#define BOARD_LED_GPIO CONFIG_OWL_LED_GPIO
 
 QueueHandle_t owl_led_command_queue;
 
