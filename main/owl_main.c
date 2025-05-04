@@ -7,6 +7,7 @@
 #include "freertos/projdefs.h"
 #include "owl_button.h"
 #include "owl_http_server.h"
+#include "owl_lcd.h"
 #include "owl_led.h"
 #include "owl_onewire.h"
 #include "owl_wifi.h"
@@ -65,6 +66,24 @@ static void owl_task(void *arg)
     }
 }
 
+void test_task(void *arg)
+{
+    while (1) {
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 0 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 255, .b = 0 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 255, .b = 0 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 255, .b = 255 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 0, .b = 255 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 255 });
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Helou");
@@ -77,5 +96,8 @@ void app_main(void)
     owl_sta();
     owl_init_http_server();
 
+    owl_init_lcd();
+
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);
+    xTaskCreate(test_task, "test_task", 4096, NULL, 5, NULL);
 }
