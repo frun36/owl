@@ -66,4 +66,16 @@ config OWL_ONEWIRE_BUS_GPIO
     help
       OneWire bus GPIO number
 
+config OWL_USE_LCD
+    bool "Use LCD"
+    default n
+    help
+        Use LCD display (DFRobot LCD1802)
+
+config OWL_USE_EPAPER
+    bool "Use EPAPER"
+    default n
+    help
+        Use EPAPER display (Waveshare 12955)
+
 endmenu

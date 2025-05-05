@@ -68,6 +68,9 @@ static void owl_task(void *arg)
 
 void test_task(void *arg)
 {
+#ifdef CONFIG_OWL_USE_LCD
+    owl_lcd_write(0, "Helou!");
+    owl_lcd_write(1, "DUPA");
     while (1) {
         owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 0 });
         vTaskDelay(pdMS_TO_TICKS(200));
@@ -82,6 +85,9 @@ void test_task(void *arg)
         owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 255 });
         vTaskDelay(pdMS_TO_TICKS(200));
     }
+#elif defined(CONFIG_OWL_USE_EPAPER)
+#endif
+    vTaskDelete(NULL);
 }
 
 void app_main(void)
@@ -96,7 +102,10 @@ void app_main(void)
     owl_sta();
     owl_init_http_server();
 
+#ifdef CONFIG_OWL_USE_LCD
     owl_init_lcd();
+#elif defined(CONFIG_OWL_USE_EPAPER)
+#endif
 
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);
     xTaskCreate(test_task, "test_task", 4096, NULL, 5, NULL);
