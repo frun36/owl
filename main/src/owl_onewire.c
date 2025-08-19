@@ -8,7 +8,7 @@
 
 onewire_bus_handle_t s_bus;
 
-onewire_bus_handle_t owl_init_onewire(int bus_gpio_num)
+onewire_bus_handle_t owl_onewire_init(int bus_gpio_num)
 {
     onewire_bus_config_t bus_config = {
         .bus_gpio_num = bus_gpio_num,

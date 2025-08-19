@@ -69,7 +69,7 @@ static void owl_led_task(void *arg)
     }
 }
 
-void owl_init_led(void)
+void owl_led_init(void)
 {
     owl_led_command_queue = xQueueCreate(4, sizeof(int));
     gpio_reset_pin(BOARD_LED_GPIO);

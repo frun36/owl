@@ -6,6 +6,7 @@
 
 #include "freertos/projdefs.h"
 #include "owl_button.h"
+#include "owl_display.h"
 #include "owl_http_server.h"
 #include "owl_lcd.h"
 #include "owl_led.h"
@@ -52,7 +53,7 @@ static void owl_task(void *arg)
             case OWL_BUTTON_DOUBLE_CLICK:
                 owl_led_blink(10);
                 vTaskDelay(pdMS_TO_TICKS(50));
-                owl_sta();
+                owl_wifi_sta();
                 owl_led_blink_off();
                 break;
             case OWL_BUTTON_LONG_PRESS:
@@ -66,47 +67,19 @@ static void owl_task(void *arg)
     }
 }
 
-void test_task(void *arg)
-{
-#ifdef CONFIG_OWL_USE_LCD
-    owl_lcd_write(0, "Helou!");
-    owl_lcd_write(1, "DUPA");
-    while (1) {
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 0 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 255, .b = 0 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 255, .b = 0 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 255, .b = 255 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 0, .g = 0, .b = 255 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-        owl_set_lcd_backlight((owl_rgb_t) { .r = 255, .g = 0, .b = 255 });
-        vTaskDelay(pdMS_TO_TICKS(200));
-    }
-#elif defined(CONFIG_OWL_USE_EPAPER)
-#endif
-    vTaskDelete(NULL);
-}
-
 void app_main(void)
 {
     ESP_LOGI(TAG, "Helou");
-    owl_init_led();
-    owl_init_onewire(ONEWIRE_BUS_GPIO);
-    owl_init_button(BUTTON_GPIO);
+    owl_led_init();
+    owl_onewire_init(ONEWIRE_BUS_GPIO);
+    owl_button_init(BUTTON_GPIO);
 
-    owl_init_wifi();
-    owl_configure_wifi();
-    owl_sta();
-    owl_init_http_server();
+    owl_wifi_init();
+    owl_wifi_configure();
+    owl_wifi_sta();
+    owl_http_server_init();
 
-#ifdef CONFIG_OWL_USE_LCD
-    owl_init_lcd();
-#elif defined(CONFIG_OWL_USE_EPAPER)
-#endif
+    owl_display_init();
 
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);
-    xTaskCreate(test_task, "test_task", 4096, NULL, 5, NULL);
 }

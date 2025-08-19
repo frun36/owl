@@ -232,7 +232,7 @@ static void handle_spiffs()
     ESP_LOGI(TAG, "SPIFFS unmounted");
 }
 
-void owl_init_http_server()
+void owl_http_server_init()
 {
     server_handle = start_webserver();
     handle_spiffs();

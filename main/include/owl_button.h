@@ -10,4 +10,4 @@ typedef enum {
     OWL_BUTTON_LONG_PRESS,
 } owl_button_event_t;
 
-void owl_init_button(int32_t gpio_num);
+void owl_button_init(int32_t gpio_num);

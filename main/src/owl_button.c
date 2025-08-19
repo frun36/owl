@@ -28,7 +28,7 @@ static void button_long_press_cb(void *arg, void *usr_data)
     xQueueSend(owl_button_event_queue, &e, portMAX_DELAY);
 }
 
-void owl_init_button(int32_t gpio_num)
+void owl_button_init(int32_t gpio_num)
 {
     owl_button_event_queue = xQueueCreate(4, sizeof(int));
     button_config_t btn_cfg = { 0 };

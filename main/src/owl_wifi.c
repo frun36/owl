@@ -48,7 +48,7 @@ static void wifi_event_handler(void *arg,
     }
 }
 
-void owl_init_wifi(void)
+void owl_wifi_init(void)
 {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES
@@ -82,7 +82,7 @@ void owl_init_wifi(void)
              MAC2STR(mac_ap));
 }
 
-void owl_configure_wifi(void)
+void owl_wifi_configure(void)
 {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
 
@@ -137,7 +137,7 @@ void owl_apsta(void)
     ESP_LOGI(TAG, "APSTA mode");
 }
 
-void owl_sta(void)
+void owl_wifi_sta(void)
 {
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));

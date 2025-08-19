@@ -7,6 +7,7 @@ idf_component_register(
     "src/owl_button.c" 
     "src/owl_http_server.c"
     "src/owl_lcd.c"
+    "src/owl_display.c"
 
     INCLUDE_DIRS "include/" "."
 )

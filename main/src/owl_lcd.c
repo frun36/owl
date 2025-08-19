@@ -32,7 +32,7 @@ static inline esp_err_t backlight_write_reg(uint8_t reg_addr, uint8_t data)
         backlight_handle, write_buf, sizeof(write_buf), pdMS_TO_TICKS(1000));
 }
 
-void owl_set_lcd_backlight(owl_rgb_t color)
+void owl_lcd_set_backlight(owl_rgb_t color)
 {
     backlight_write_reg(BACKLIGHT_RED, color.r);
     backlight_write_reg(BACKLIGHT_GREEN, color.g);
@@ -68,8 +68,12 @@ esp_err_t owl_lcd_write(uint8_t line, const char *s)
     res |= lcd_command(LCD_CMD_SET_DDRAM_ADDR
                        | (line & 1 ? LCD_ADDR_LINE1 : LCD_ADDR_LINE0));
     vTaskDelay(pdMS_TO_TICKS(2));
-    for (size_t i = 0; i < strlen(s) && i < LCD_CHAR_WIDTH; i++) {
-        res |= lcd_char(s[i]);
+    size_t len = strlen(s);
+    for (size_t i = 0; i < LCD_CHAR_WIDTH; i++) {
+        if (i < len)
+            res |= lcd_char(s[i]);
+        else
+            res |= lcd_char(' ');
     }
     return res;
 }
@@ -91,7 +95,7 @@ esp_err_t owl_lcd_write(uint8_t line, const char *s)
 #define LCD_SET_SHIFT 0x01
 #define LCD_SET_NO_SHIFT 0x00
 
-void owl_init_lcd()
+void owl_lcd_init()
 {
     i2c_master_bus_config_t bus_config = {
         .i2c_port = I2C_NUM_0,
@@ -125,7 +129,8 @@ void owl_init_lcd()
 
     lcd_command(LCD_PFX_FUNCTION | LCD_SET_2LINE | LCD_SET_DISP_ON);
     vTaskDelay(pdMS_TO_TICKS(1));
-    lcd_command(LCD_PFX_DISP | LCD_SET_DISP_ON | LCD_SET_CURSOR_OFF | LCD_SET_BLINK_OFF);
+    lcd_command(LCD_PFX_DISP | LCD_SET_DISP_ON | LCD_SET_CURSOR_OFF
+                | LCD_SET_BLINK_OFF);
     vTaskDelay(pdMS_TO_TICKS(1));
     lcd_command(LCD_CMD_CLEAR);
     vTaskDelay(pdMS_TO_TICKS(2));
