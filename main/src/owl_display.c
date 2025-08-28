@@ -60,7 +60,11 @@ void owl_display_init()
     xTaskCreate(owl_display_task, "owl_display_task", 4096, NULL, 5, NULL);
 }
 
-void owl_display(owl_display_event_t e)
+void owl_display(const char *line0,
+                 const char *line1,
+                 owl_rgb_t color,
+                 int duration_ms)
 {
+    owl_display_event_t e = { { line0, line1 }, color, duration_ms };
     xQueueSend(owl_display_event_queue, &e, 0);
 }

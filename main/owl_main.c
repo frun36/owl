@@ -46,7 +46,13 @@ static void owl_task(void *arg)
                         TAG, "Found device #%zu: %" PRIX64, i, address_buff[i]);
                     response_ptr += sprintf(
                         response_ptr, "%" PRIX64 "\n", address_buff[i]);
+
+                    char disp_buff[17];
+                    snprintf(disp_buff, 17, "%" PRIX64, address_buff[i]);
+                    owl_display(
+                        "OneWire:", disp_buff, owl_rgb(OWL_COLOR_WHITE), 5000);
                 }
+
                 *response_ptr = '\0';
                 owl_ws_send(response_buff);
                 break;
@@ -71,6 +77,7 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "Helou");
     owl_led_init();
+    owl_display_init();
     owl_onewire_init(ONEWIRE_BUS_GPIO);
     owl_button_init(BUTTON_GPIO);
 
@@ -78,8 +85,6 @@ void app_main(void)
     owl_wifi_configure();
     owl_wifi_sta();
     owl_http_server_init();
-
-    owl_display_init();
 
     xTaskCreate(owl_task, "owl_task", 4096, NULL, 5, NULL);
 }

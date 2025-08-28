@@ -36,11 +36,11 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.2.5
+    version: 5.5.0
 direct_dependencies:
 - espressif/button
 - espressif/onewire_bus
 - idf
 manifest_hash: f8f070d0b55a129b618184cf311cc0917be74eb18d6b657a152c849ad8b51e6d
-target: esp32
+target: esp32s3
 version: 2.0.0

@@ -7,9 +7,12 @@
 
 #include "owl_wifi.h"
 
+#include "esp_wifi_types.h"
 #include "nvs_flash.h"
+#include "owl_display.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #define WIFI_SSID CONFIG_OWL_WIFI_SSID
@@ -34,6 +37,13 @@ static void wifi_event_handler(void *arg,
                  "station " MACSTR " join, AID=%d",
                  MAC2STR(event->mac),
                  event->aid);
+
+        wifi_config_t conf;
+        esp_wifi_get_config(WIFI_IF_STA, &conf);
+        owl_display("Connected:",
+                    (const char *) conf.sta.ssid,
+                    owl_rgb(OWL_COLOR_GREEN),
+                    -1);
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t *event
             = (wifi_event_ap_stadisconnected_t *) event_data;
@@ -42,6 +52,13 @@ static void wifi_event_handler(void *arg,
                  MAC2STR(event->mac),
                  event->aid,
                  event->reason);
+
+        wifi_config_t conf;
+        esp_wifi_get_config(WIFI_IF_STA, &conf);
+        owl_display("Disconnected:",
+                    (const char *) conf.sta.ssid,
+                    owl_rgb(OWL_COLOR_GREEN),
+                    -1);
     } else if (event_id == WIFI_EVENT_STA_START) {
         ESP_LOGI(TAG, "Station started - connecting to WiFi");
         esp_wifi_connect();
@@ -135,6 +152,8 @@ void owl_apsta(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "APSTA mode");
+
+    owl_display(SOFTAP_SSID, SOFTAP_PASS, owl_rgb(OWL_COLOR_CYAN), -1);
 }
 
 void owl_wifi_sta(void)
