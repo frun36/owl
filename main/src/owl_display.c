@@ -13,7 +13,8 @@ static void owl_display_task(void *arg)
     owl_display_event_t e;
 
     owl_display_event_t parent = (owl_display_event_t) {
-        .message = { { "OWL" }, { "Helou" } },
+        .message
+        = { { 'O', 'W', 'L', '\0' }, { 'H', 'e', 'l', 'o', 'u', '\0' } },
         .color = (owl_rgb_t) { .r = 255, .g = 255, .b = 255 },
         .duration_ms = -1,
     };
@@ -65,6 +66,8 @@ void owl_display(const char *line0,
                  owl_rgb_t color,
                  int duration_ms)
 {
-    owl_display_event_t e = { { line0, line1 }, color, duration_ms };
+    owl_display_event_t e = { {}, color, duration_ms };
+    strncpy(e.message[0], line0, 17);
+    strncpy(e.message[1], line1, 17);
     xQueueSend(owl_display_event_queue, &e, 0);
 }

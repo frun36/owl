@@ -7,7 +7,6 @@
 
 #include "owl_wifi.h"
 
-#include "esp_wifi_types.h"
 #include "nvs_flash.h"
 #include "owl_display.h"
 
@@ -30,38 +29,61 @@ static void wifi_event_handler(void *arg,
                                int32_t event_id,
                                void *event_data)
 {
-    if (event_id == WIFI_EVENT_AP_STACONNECTED) {
+    static size_t s_retry_num = 0;
+    wifi_config_t conf;
+    esp_wifi_get_config(WIFI_IF_STA, &conf);
+
+    if (event_base == WIFI_EVENT
+        && event_id == WIFI_EVENT_STA_START) { // STA events
+        ESP_LOGI(TAG, "Station started - connecting to WiFi");
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT
+               && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < 3) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(TAG,
+                     "Connection to %s: attempt %zu",
+                     (const char *) conf.sta.ssid,
+                     s_retry_num);
+            char msg[17];
+            snprintf(msg, 17, "Conn attempt %zu", s_retry_num);
+            owl_display((const char *) conf.sta.ssid,
+                        msg,
+                        owl_rgb(OWL_COLOR_YELLOW),
+                        -1);
+        } else {
+            ESP_LOGI(
+                TAG, "Failed to connect to %s: ", (const char *) conf.sta.ssid);
+            owl_display((const char *) conf.sta.ssid,
+                        "Conn failed",
+                        owl_rgb(OWL_COLOR_RED),
+                        -1);
+        }
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+        ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
+        s_retry_num = 0;
+    } else if (event_id == WIFI_EVENT_AP_STACONNECTED) { // AP events
         wifi_event_ap_staconnected_t *event
             = (wifi_event_ap_staconnected_t *) event_data;
         ESP_LOGI(TAG,
-                 "station " MACSTR " join, AID=%d",
+                 "Station " MACSTR " joined AP, AID=%d",
                  MAC2STR(event->mac),
                  event->aid);
 
-        wifi_config_t conf;
-        esp_wifi_get_config(WIFI_IF_STA, &conf);
-        owl_display("Connected:",
-                    (const char *) conf.sta.ssid,
+        owl_display((const char *) conf.sta.ssid,
+                    "Connected",
                     owl_rgb(OWL_COLOR_GREEN),
                     -1);
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t *event
             = (wifi_event_ap_stadisconnected_t *) event_data;
         ESP_LOGI(TAG,
-                 "station " MACSTR " leave, AID=%d, reason=%d",
+                 "Station " MACSTR " left AP, AID=%d, reason=%d",
                  MAC2STR(event->mac),
                  event->aid,
                  event->reason);
-
-        wifi_config_t conf;
-        esp_wifi_get_config(WIFI_IF_STA, &conf);
-        owl_display("Disconnected:",
-                    (const char *) conf.sta.ssid,
-                    owl_rgb(OWL_COLOR_GREEN),
-                    -1);
-    } else if (event_id == WIFI_EVENT_STA_START) {
-        ESP_LOGI(TAG, "Station started - connecting to WiFi");
-        esp_wifi_connect();
     }
 }
 

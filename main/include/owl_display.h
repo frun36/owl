@@ -44,7 +44,7 @@ static inline owl_rgb_t owl_rgb(owl_color_t color)
 }
 
 typedef struct {
-    const char *message[2]; // one for each line, with null terminator
+    char message[2][17]; // one for each line, with null terminator
     owl_rgb_t color;
     int duration_ms; // if <= 0: display indefinitely
 } owl_display_event_t;
