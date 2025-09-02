@@ -2,10 +2,13 @@
 #include "driver/i2c_master.h"
 
 #include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include <string.h>
+
+static const char *TAG = "owl_lcd";
 
 #define BACKLIGHT_RED 0x01
 #define BACKLIGHT_GREEN 0x02
@@ -127,13 +130,17 @@ void owl_lcd_init()
 
     vTaskDelay(pdMS_TO_TICKS(50)); // wait after power up
 
-    lcd_command(LCD_PFX_FUNCTION | LCD_SET_2LINE | LCD_SET_DISP_ON);
+    ESP_ERROR_CHECK(
+        lcd_command(LCD_PFX_FUNCTION | LCD_SET_2LINE | LCD_SET_DISP_ON));
     vTaskDelay(pdMS_TO_TICKS(1));
-    lcd_command(LCD_PFX_DISP | LCD_SET_DISP_ON | LCD_SET_CURSOR_OFF
-                | LCD_SET_BLINK_OFF);
+    ESP_ERROR_CHECK(lcd_command(LCD_PFX_DISP | LCD_SET_DISP_ON
+                                | LCD_SET_CURSOR_OFF | LCD_SET_BLINK_OFF));
     vTaskDelay(pdMS_TO_TICKS(1));
-    lcd_command(LCD_CMD_CLEAR);
+    ESP_ERROR_CHECK(lcd_command(LCD_CMD_CLEAR));
     vTaskDelay(pdMS_TO_TICKS(2));
-    lcd_command(LCD_PFX_ENTRY_MODE | LCD_SET_MOVE_RIGHT | LCD_SET_SHIFT);
+    ESP_ERROR_CHECK(
+        lcd_command(LCD_PFX_ENTRY_MODE | LCD_SET_MOVE_RIGHT | LCD_SET_SHIFT));
     vTaskDelay(pdMS_TO_TICKS(10));
+
+    ESP_LOGI(TAG, "Initialized LCD display");
 }

@@ -20,7 +20,9 @@ static void owl_display_task(void *arg)
     };
 
     owl_lcd_set_backlight(parent.color);
+    vTaskDelay(pdMS_TO_TICKS(10));
     owl_lcd_write(0, parent.message[0]);
+    vTaskDelay(pdMS_TO_TICKS(10));
     owl_lcd_write(1, parent.message[1]);
 
     TickType_t time = portMAX_DELAY;
@@ -45,8 +47,11 @@ static void owl_display_task(void *arg)
         }
         time = portMAX_DELAY;
         owl_lcd_set_backlight(parent.color);
+        vTaskDelay(pdMS_TO_TICKS(10));
         owl_lcd_write(0, parent.message[0]);
+        vTaskDelay(pdMS_TO_TICKS(10));
         owl_lcd_write(1, parent.message[1]);
+        
 #endif
     }
 }
