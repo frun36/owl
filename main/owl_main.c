@@ -4,11 +4,9 @@
 
 #include "esp_log.h"
 
-#include "freertos/projdefs.h"
 #include "owl_button.h"
 #include "owl_display.h"
 #include "owl_http_server.h"
-#include "owl_lcd.h"
 #include "owl_led.h"
 #include "owl_onewire.h"
 #include "owl_wifi.h"
@@ -50,7 +48,7 @@ static void owl_task(void *arg)
                     char disp_buff[17];
                     snprintf(disp_buff, 17, "%" PRIX64, address_buff[i]);
                     owl_display(
-                        "OneWire:", disp_buff, owl_rgb(OWL_COLOR_WHITE), 5000);
+                        "OneWire:", disp_buff, owl_rgb(OWL_COLOR_CYAN), 5000);
                 }
 
                 *response_ptr = '\0';
@@ -63,7 +61,7 @@ static void owl_task(void *arg)
                 owl_led_blink_off();
                 break;
             case OWL_BUTTON_LONG_PRESS:
-                owl_apsta();
+                owl_wifi_ap();
                 owl_led_blink(500);
                 break;
             default:

@@ -3,10 +3,14 @@
 #include "esp_log.h"
 #include "esp_mac.h"
 #include "esp_netif.h"
+#include "esp_netif_ip_addr.h"
+#include "esp_netif_types.h"
 #include "esp_wifi.h"
 
 #include "owl_wifi.h"
 
+#include "esp_wifi_types_generic.h"
+#include "freertos/idf_additions.h"
 #include "nvs_flash.h"
 #include "owl_display.h"
 
@@ -24,59 +28,143 @@ static const char *TAG = "owl_wifi";
 #define SOFTAP_CH CONFIG_OWL_SOFTAP_CH
 #define SOFTAP_MAX_CONN CONFIG_OWL_SOFTAP_MAX_CONN
 
+static owl_wifi_status_t s_wifi_status = OWL_WIFI_UNKNOWN;
+static char s_ip_addr[17] = {};
+static SemaphoreHandle_t s_wifi_status_mutex = NULL;
+
+static void set_wifi_status(owl_wifi_status_t status)
+{
+    if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
+        s_wifi_status = status;
+        xSemaphoreGive(s_wifi_status_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WiFi status mutex");
+    }
+
+    owl_display_update_status();
+}
+
+static void set_ip_addr(esp_ip4_addr_t *ip)
+{
+    if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
+        if (ip == NULL) {
+            snprintf(s_ip_addr, 17, "");
+        } else {
+            snprintf(s_ip_addr, 17, IPSTR, IP2STR(ip));
+        }
+        xSemaphoreGive(s_wifi_status_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WiFi status mutex");
+    }
+
+    owl_display_update_status();
+}
+
+owl_wifi_status_t owl_wifi_get_status()
+{
+    if (s_wifi_status_mutex == NULL) {
+        ESP_LOGE(TAG, "WiFi status mutex uninitialized");
+        return OWL_WIFI_UNKNOWN;
+    }
+
+    owl_wifi_status_t status = OWL_WIFI_UNKNOWN;
+    if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
+        status = s_wifi_status;
+        xSemaphoreGive(s_wifi_status_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WiFi status mutex");
+    }
+    return status;
+}
+
+const char *owl_wifi_get_ip_str()
+{
+    if (s_wifi_status_mutex == NULL) {
+        ESP_LOGE(TAG, "WiFi status mutex uninitialized");
+        return "-";
+    }
+
+    const char *ip = "-";
+    if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
+        ip = s_ip_addr;
+        xSemaphoreGive(s_wifi_status_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WiFi status mutex");
+    }
+    return ip;
+}
+
 static void wifi_event_handler(void *arg,
                                esp_event_base_t event_base,
                                int32_t event_id,
                                void *event_data)
 {
-    static size_t s_retry_num = 0;
-    wifi_config_t conf;
-    esp_wifi_get_config(WIFI_IF_STA, &conf);
+    static size_t s_try_num = 0;
+    wifi_config_t sta_conf;
+    esp_wifi_get_config(WIFI_IF_STA, &sta_conf);
+    wifi_mode_t wifi_mode;
+    esp_wifi_get_mode(&wifi_mode);
 
-    if (event_base == WIFI_EVENT
-        && event_id == WIFI_EVENT_STA_START) { // STA events
+    switch (event_id) {
+    case WIFI_EVENT_STA_START:
+        if (wifi_mode != WIFI_MODE_STA)
+            break;
         ESP_LOGI(TAG, "Station started - connecting to WiFi");
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT
-               && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < 3) {
+        set_wifi_status(OWL_WIFI_STA);
+        // fall through
+    case WIFI_EVENT_STA_DISCONNECTED:
+        if (s_try_num < 3) {
             esp_wifi_connect();
-            s_retry_num++;
+            s_try_num++;
             ESP_LOGI(TAG,
                      "Connection to %s: attempt %zu",
-                     (const char *) conf.sta.ssid,
-                     s_retry_num);
+                     (const char *) sta_conf.sta.ssid,
+                     s_try_num);
             char msg[17];
-            snprintf(msg, 17, "Conn attempt %zu", s_retry_num);
-            owl_display((const char *) conf.sta.ssid,
+            snprintf(msg, 17, "Conn attempt %zu", s_try_num);
+            owl_display((const char *) sta_conf.sta.ssid,
                         msg,
                         owl_rgb(OWL_COLOR_YELLOW),
-                        -1);
+                        3000);
         } else {
-            ESP_LOGI(
-                TAG, "Failed to connect to %s: ", (const char *) conf.sta.ssid);
-            owl_display((const char *) conf.sta.ssid,
-                        "Conn failed",
+            ESP_LOGI(TAG,
+                     "Failed to connect to %s",
+                     (const char *) sta_conf.sta.ssid);
+            owl_display("Conn failed",
+                        (const char *) sta_conf.sta.ssid,
                         owl_rgb(OWL_COLOR_RED),
-                        -1);
+                        3000);
+            s_try_num = 0;
+            set_wifi_status(OWL_WIFI_DISCONNECTED);
         }
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        break;
+    case WIFI_EVENT_STA_CONNECTED:
+        s_try_num = 0;
+        break;
+
+    case IP_EVENT_STA_GOT_IP: {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
-        ESP_LOGI(TAG, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
-        s_retry_num = 0;
-    } else if (event_id == WIFI_EVENT_AP_STACONNECTED) { // AP events
+
+        set_ip_addr(&event->ip_info.ip);
+        ESP_LOGI(TAG, "Got IP: %s", owl_wifi_get_ip_str());
+
+        owl_display("Connected",
+                    (const char *) sta_conf.sta.ssid,
+                    owl_rgb(OWL_COLOR_GREEN),
+                    3000);
+        break;
+    }
+        // AP events
+    case WIFI_EVENT_AP_STACONNECTED: {
         wifi_event_ap_staconnected_t *event
             = (wifi_event_ap_staconnected_t *) event_data;
         ESP_LOGI(TAG,
                  "Station " MACSTR " joined AP, AID=%d",
                  MAC2STR(event->mac),
                  event->aid);
-
-        owl_display((const char *) conf.sta.ssid,
-                    "Connected",
-                    owl_rgb(OWL_COLOR_GREEN),
-                    -1);
-    } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        break;
+    }
+    case WIFI_EVENT_AP_STADISCONNECTED: {
         wifi_event_ap_stadisconnected_t *event
             = (wifi_event_ap_stadisconnected_t *) event_data;
         ESP_LOGI(TAG,
@@ -84,11 +172,18 @@ static void wifi_event_handler(void *arg,
                  MAC2STR(event->mac),
                  event->aid,
                  event->reason);
+        break;
+    }
     }
 }
 
 void owl_wifi_init(void)
 {
+    s_wifi_status_mutex = xSemaphoreCreateMutex();
+    if (s_wifi_status_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create WiFi status mutex");
+    }
+
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES
         || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -167,15 +262,16 @@ void owl_wifi_configure(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &softap_config));
 }
 
-void owl_apsta(void)
+void owl_wifi_ap(void)
 {
+    set_ip_addr(NULL);
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "APSTA mode");
+    ESP_LOGI(TAG, "AP mode");
 
-    owl_display(SOFTAP_SSID, SOFTAP_PASS, owl_rgb(OWL_COLOR_CYAN), -1);
+    set_wifi_status(OWL_WIFI_AP);
 }
 
 void owl_wifi_sta(void)

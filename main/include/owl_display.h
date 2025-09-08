@@ -34,7 +34,7 @@ static inline owl_rgb_t owl_rgb(owl_color_t color)
     case OWL_COLOR_MAGENTA:
         return (owl_rgb_t) { .r = 255, .g = 0, .b = 255 };
     case OWL_COLOR_YELLOW:
-        return (owl_rgb_t) { .r = 255, .g = 255, .b = 0 };
+        return (owl_rgb_t) { .r = 255, .g = 128, .b = 0 }; // was too green...
     case OWL_COLOR_BLACK:
         return (owl_rgb_t) { .r = 0, .g = 0, .b = 0 };
     case OWL_COLOR_WHITE:
@@ -56,3 +56,4 @@ void owl_display(const char *line0,
                  const char *line1,
                  owl_rgb_t color,
                  int duration_ms);
+void owl_display_update_status();

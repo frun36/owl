@@ -5,19 +5,56 @@
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_wifi.h"
+#include "freertos/idf_additions.h"
+#include "owl_display.h"
 
 static const char *TAG = "owl_http_server";
 
-static httpd_handle_t server_handle = NULL;
-static int ws_fd = -1;
+static httpd_handle_t s_server_handle = NULL;
+static int s_ws_fd = -1;
+static SemaphoreHandle_t s_ws_fd_mutex = NULL;
 
-static char *index_html = NULL;
-static size_t index_html_size = 0;
+static char *s_index_html = NULL;
+static size_t s_index_html_size = 0;
+
+static void set_ws_fd(int ws_fd)
+{
+    if (xSemaphoreTake(s_ws_fd_mutex, portMAX_DELAY)) {
+        s_ws_fd = ws_fd;
+        xSemaphoreGive(s_ws_fd_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WebSocket file descriptor mutex");
+    }
+
+    owl_display_update_status();
+}
+
+int get_ws_fd()
+{
+    if (s_ws_fd_mutex == NULL) {
+        ESP_LOGE(TAG, "WebSocket file descriptor mutex uninitialized");
+        return -1;
+    }
+
+    int ws_fd = -1;
+    if (xSemaphoreTake(s_ws_fd_mutex, portMAX_DELAY)) {
+        ws_fd = s_ws_fd;
+        xSemaphoreGive(s_ws_fd_mutex);
+    } else {
+        ESP_LOGE(TAG, "Failed to take WebSocket file descriptor mutex");
+    }
+    return ws_fd;
+}
+
+bool owl_ws_is_connected()
+{
+    return get_ws_fd() != -1;
+}
 
 static esp_err_t root_get_handler(httpd_req_t *req)
 {
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_send(req, index_html, index_html_size);
+    httpd_resp_send(req, s_index_html, s_index_html_size);
     return ESP_OK;
 }
 
@@ -31,8 +68,8 @@ static httpd_uri_t root = {
 static esp_err_t ws_handler(httpd_req_t *req)
 {
     if (req->method == HTTP_GET) {
-        ws_fd = httpd_req_to_sockfd(req);
-        ESP_LOGI(TAG, "WS handshake done (fd = %d)", ws_fd);
+        set_ws_fd(httpd_req_to_sockfd(req));
+        ESP_LOGI(TAG, "WS handshake done (fd = %d)", s_ws_fd);
         return ESP_OK;
     }
 
@@ -66,7 +103,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     if (frame.type == HTTPD_WS_TYPE_CLOSE) {
         ESP_LOGI(TAG, "WS closed");
-        ws_fd = -1;
+        set_ws_fd(-1);
     }
     return ret;
 }
@@ -164,7 +201,7 @@ static httpd_handle_t start_webserver(void)
 
 void owl_ws_send(const char *message)
 {
-    if (ws_fd < 0 || server_handle == NULL) {
+    if (s_ws_fd < 0 || s_server_handle == NULL) {
         ESP_LOGE(TAG, "No active WS connection");
         return;
     }
@@ -177,10 +214,11 @@ void owl_ws_send(const char *message)
         .len = strlen(message),
     };
 
-    esp_err_t ret = httpd_ws_send_frame_async(server_handle, ws_fd, &ws_pkt);
+    esp_err_t ret
+        = httpd_ws_send_frame_async(s_server_handle, s_ws_fd, &ws_pkt);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send WS message: %s", esp_err_to_name(ret));
-        ws_fd = -1;
+        set_ws_fd(-1);
     }
 }
 
@@ -194,18 +232,18 @@ static esp_err_t load_index_html()
     }
 
     fseek(file, 0, SEEK_END);
-    index_html_size = ftell(file);
+    s_index_html_size = ftell(file);
     rewind(file);
 
-    index_html = malloc(index_html_size + 1);
-    if (!index_html) {
+    s_index_html = malloc(s_index_html_size + 1);
+    if (!s_index_html) {
         ESP_LOGE(TAG, "Memory allocation for index.html failed");
         fclose(file);
         return ESP_ERR_NO_MEM;
     }
 
-    fread(index_html, 1, index_html_size, file);
-    index_html[index_html_size] = '\0'; // Null-terminate
+    fread(s_index_html, 1, s_index_html_size, file);
+    s_index_html[s_index_html_size] = '\0'; // Null-terminate
     fclose(file);
 
     return ESP_OK;
@@ -234,7 +272,11 @@ static void handle_spiffs()
 
 void owl_http_server_init()
 {
-    server_handle = start_webserver();
+    s_ws_fd_mutex = xSemaphoreCreateMutex();
+    if (s_ws_fd_mutex == NULL) {
+        ESP_LOGE(TAG, "Failed to create WebSocket file descriptor mutex");
+    }
+    s_server_handle = start_webserver();
     handle_spiffs();
     ESP_LOGI(TAG, "Initialized HTTP server");
 }
