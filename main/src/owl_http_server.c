@@ -19,6 +19,11 @@ static size_t s_index_html_size = 0;
 
 static void set_ws_fd(int ws_fd)
 {
+    if (s_ws_fd_mutex == NULL) {
+        ESP_LOGE(TAG, "WebSocket file descriptor mutex uninitialized");
+        return;
+    }
+
     if (xSemaphoreTake(s_ws_fd_mutex, portMAX_DELAY)) {
         s_ws_fd = ws_fd;
         xSemaphoreGive(s_ws_fd_mutex);
@@ -29,7 +34,11 @@ static void set_ws_fd(int ws_fd)
     owl_display_update_status();
 }
 
-int get_ws_fd()
+void owl_reset_ws_fd() {
+    set_ws_fd(-1);
+}
+
+static int get_ws_fd()
 {
     if (s_ws_fd_mutex == NULL) {
         ESP_LOGE(TAG, "WebSocket file descriptor mutex uninitialized");

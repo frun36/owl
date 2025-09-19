@@ -49,8 +49,6 @@ typedef struct {
     int duration_ms; // if <= 0: display indefinitely
 } owl_display_event_t;
 
-extern QueueHandle_t owl_display_event_queue;
-
 void owl_display_init();
 void owl_display(const char *line0,
                  const char *line1,

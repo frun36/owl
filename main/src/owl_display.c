@@ -1,4 +1,5 @@
 #include "owl_display.h"
+#include "esp_log.h"
 #include "esp_wifi.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
@@ -6,11 +7,14 @@
 #include "owl_lcd.h"
 #include "owl_wifi.h"
 #include "portmacro.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
-QueueHandle_t owl_display_event_queue;
+static QueueHandle_t owl_display_event_queue = NULL;
+
+static const char *TAG = "owl_display";
 
 void owl_display_update_status()
 {
@@ -65,18 +69,23 @@ static void owl_display_task(void *arg)
     };
     // clang-format on
 
+    TickType_t display_ticks = portMAX_DELAY;
     while (1) {
 #ifdef CONFIG_OWL_USE_LCD
-        if (xQueueReceive(owl_display_event_queue, &e, portMAX_DELAY)) {
+        if (xQueueReceive(owl_display_event_queue, &e, display_ticks)) {
             if (e.duration_ms != -1) {
                 owl_lcd_set_backlight(e.color);
                 owl_lcd_write(0, e.message[0]);
                 owl_lcd_write(1, e.message[1]);
-                vTaskDelay(pdMS_TO_TICKS(e.duration_ms));
+                display_ticks = pdMS_TO_TICKS(e.duration_ms);
             } else {
                 status = e;
+                owl_lcd_set_backlight(status.color);
+                owl_lcd_write(0, status.message[0]);
+                owl_lcd_write(1, status.message[1]);
+                display_ticks = portMAX_DELAY;
             }
-
+        } else {
             if (uxQueueMessagesWaiting(owl_display_event_queue) == 0) {
                 owl_lcd_set_backlight(status.color);
                 owl_lcd_write(0, status.message[0]);
@@ -93,7 +102,7 @@ void owl_display_init()
     owl_lcd_init();
 #endif
 
-    owl_display_event_queue = xQueueCreate(2, sizeof(owl_display_event_t));
+    owl_display_event_queue = xQueueCreate(4, sizeof(owl_display_event_t));
     xTaskCreate(owl_display_task, "owl_display_task", 4096, NULL, 5, NULL);
 }
 
@@ -103,7 +112,22 @@ void owl_display(const char *line0,
                  int duration_ms)
 {
     owl_display_event_t e = { {}, color, duration_ms };
-    strncpy(e.message[0], line0, 17);
-    strncpy(e.message[1], line1, 17);
-    xQueueSend(owl_display_event_queue, &e, 0);
+
+    snprintf(e.message[0], sizeof(e.message[0]), "%s", line0 ? line0 : "");
+    snprintf(e.message[1], sizeof(e.message[1]), "%s", line1 ? line1 : "");
+
+    ESP_LOGI(TAG,
+             "To display (color %02x%02x%02x, %d ms):\n%s\n%s",
+             e.color.r,
+             e.color.g,
+             e.color.b,
+             e.duration_ms,
+             e.message[0],
+             e.message[1]);
+
+    if (owl_display_event_queue != NULL) {
+        xQueueSend(owl_display_event_queue, &e, 0);
+    } else {
+        ESP_LOGE(TAG, "Display queue is uninitialized");
+    }
 }

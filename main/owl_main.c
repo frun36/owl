@@ -4,6 +4,7 @@
 
 #include "esp_log.h"
 
+#include "freertos/projdefs.h"
 #include "owl_button.h"
 #include "owl_display.h"
 #include "owl_http_server.h"

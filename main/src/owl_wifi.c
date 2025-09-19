@@ -13,6 +13,7 @@
 #include "freertos/idf_additions.h"
 #include "nvs_flash.h"
 #include "owl_display.h"
+#include "owl_http_server.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -34,6 +35,11 @@ static SemaphoreHandle_t s_wifi_status_mutex = NULL;
 
 static void set_wifi_status(owl_wifi_status_t status)
 {
+    if (s_wifi_status_mutex == NULL) {
+        ESP_LOGE(TAG, "WiFi status mutex uninitialized");
+        return;
+    }
+
     if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
         s_wifi_status = status;
         xSemaphoreGive(s_wifi_status_mutex);
@@ -46,9 +52,14 @@ static void set_wifi_status(owl_wifi_status_t status)
 
 static void set_ip_addr(esp_ip4_addr_t *ip)
 {
+    if (s_wifi_status_mutex == NULL) {
+        ESP_LOGE(TAG, "WiFi status mutex uninitialized");
+        return;
+    }
+
     if (xSemaphoreTake(s_wifi_status_mutex, portMAX_DELAY)) {
         if (ip == NULL) {
-            snprintf(s_ip_addr, 17, "");
+            snprintf(s_ip_addr, 17, "%s", "");
         } else {
             snprintf(s_ip_addr, 17, IPSTR, IP2STR(ip));
         }
@@ -136,25 +147,14 @@ static void wifi_event_handler(void *arg,
                         3000);
             s_try_num = 0;
             set_wifi_status(OWL_WIFI_DISCONNECTED);
+            owl_reset_ws_fd();
         }
         break;
     case WIFI_EVENT_STA_CONNECTED:
         s_try_num = 0;
         break;
 
-    case IP_EVENT_STA_GOT_IP: {
-        ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
-
-        set_ip_addr(&event->ip_info.ip);
-        ESP_LOGI(TAG, "Got IP: %s", owl_wifi_get_ip_str());
-
-        owl_display("Connected",
-                    (const char *) sta_conf.sta.ssid,
-                    owl_rgb(OWL_COLOR_GREEN),
-                    3000);
-        break;
-    }
-        // AP events
+    // AP events
     case WIFI_EVENT_AP_STACONNECTED: {
         wifi_event_ap_staconnected_t *event
             = (wifi_event_ap_staconnected_t *) event_data;
@@ -172,6 +172,28 @@ static void wifi_event_handler(void *arg,
                  MAC2STR(event->mac),
                  event->aid,
                  event->reason);
+        break;
+    }
+    }
+}
+
+void ip_event_handler(void *arg,
+                      esp_event_base_t event_base,
+                      int32_t event_id,
+                      void *event_data)
+{
+    wifi_config_t sta_conf;
+    esp_wifi_get_config(WIFI_IF_STA, &sta_conf);
+
+    switch (event_id) {
+    case IP_EVENT_STA_GOT_IP: {
+        ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+        set_ip_addr(&event->ip_info.ip);
+        ESP_LOGI(TAG, "Got IP: %s", owl_wifi_get_ip_str());
+        owl_display("Connected",
+                    (const char *) sta_conf.sta.ssid,
+                    owl_rgb(OWL_COLOR_GREEN),
+                    3000);
         break;
     }
     }
@@ -203,6 +225,9 @@ void owl_wifi_init(void)
 
     ESP_ERROR_CHECK(esp_event_handler_instance_register(
         WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL));
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        IP_EVENT, ESP_EVENT_ANY_ID, &ip_event_handler, NULL, NULL));
 
     uint8_t mac_sta[6];
     uint8_t mac_ap[6];
@@ -265,6 +290,8 @@ void owl_wifi_configure(void)
 void owl_wifi_ap(void)
 {
     set_ip_addr(NULL);
+    owl_reset_ws_fd();
+
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_start());
@@ -276,6 +303,8 @@ void owl_wifi_ap(void)
 
 void owl_wifi_sta(void)
 {
+    owl_reset_ws_fd();
+
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
