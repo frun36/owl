@@ -208,11 +208,11 @@ static httpd_handle_t start_webserver(void)
     return server;
 }
 
-void owl_ws_send(const char *message)
+bool owl_ws_send(const char *message)
 {
     if (s_ws_fd < 0 || s_server_handle == NULL) {
         ESP_LOGE(TAG, "No active WS connection");
-        return;
+        return false;
     }
 
     httpd_ws_frame_t ws_pkt = {
@@ -228,7 +228,10 @@ void owl_ws_send(const char *message)
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to send WS message: %s", esp_err_to_name(ret));
         set_ws_fd(-1);
+        return false;
     }
+
+    return true;
 }
 
 static esp_err_t load_index_html()

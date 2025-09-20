@@ -5,6 +5,7 @@
 #include "esp_log.h"
 
 #include "freertos/projdefs.h"
+#include "onewire_types.h"
 #include "owl_button.h"
 #include "owl_display.h"
 #include "owl_http_server.h"
@@ -20,48 +21,90 @@
 #define ONEWIRE_BUS_GPIO CONFIG_OWL_ONEWIRE_BUS_GPIO
 
 #define MAX_ONEWIRE_DEVICES 1
+#define MAX_STORED_ADDRESSES 32
 
 static const char *TAG = "owl";
 
 static void owl_task(void *arg)
 {
-    owl_button_event_t e;
-    onewire_device_address_t address_buff[MAX_ONEWIRE_DEVICES];
+
+    struct {
+        onewire_device_address_t address_buff[MAX_STORED_ADDRESSES];
+        size_t n;
+    } storage = { .n = 0 };
+
     // 16 char address, newline, null terminator
-    char response_buff[MAX_ONEWIRE_DEVICES * 17 + 1];
-    size_t count;
+    char response_buff[17 * MAX_STORED_ADDRESSES + 1];
 
     while (1) {
-        char *response_ptr = response_buff;
+        owl_button_event_t e;
+        size_t count = 0;
+        char disp_line0[17] = {};
+        char disp_line1[17] = {};
+        bool sent = false;
+
         if (xQueueReceive(owl_button_event_queue, &e, portMAX_DELAY)) {
             switch (e) {
             case OWL_BUTTON_SINGLE_CLICK:
-                owl_led_on();
-                count = owl_onewire_search(address_buff, MAX_ONEWIRE_DEVICES);
-                owl_led_off();
+                // Read OneWire address, store or send them
+                if (storage.n + MAX_ONEWIRE_DEVICES >= MAX_STORED_ADDRESSES) {
+                    ESP_LOGE(TAG,
+                             "No space in storage for next OneWire address");
+                    owl_display("NO SPACE", "", owl_rgb(OWL_COLOR_RED), 5000);
+                } else {
+                    owl_led_on();
+                    count = owl_onewire_search(storage.address_buff + storage.n,
+                                               MAX_ONEWIRE_DEVICES);
+                    owl_led_off();
 
-                for (size_t i = 0; i < count; i++) {
-                    ESP_LOGI(
-                        TAG, "Found device #%zu: %" PRIX64, i, address_buff[i]);
-                    response_ptr += sprintf(
-                        response_ptr, "%" PRIX64 "\n", address_buff[i]);
+                    for (size_t i = 0; i < count; i++) {
+                        ESP_LOGI(TAG,
+                                 "Found device #%zu: %" PRIX64,
+                                 i,
+                                 storage.address_buff[storage.n]);
 
-                    char disp_buff[17];
-                    snprintf(disp_buff, 17, "%" PRIX64, address_buff[i]);
-                    owl_display(
-                        "OneWire:", disp_buff, owl_rgb(OWL_COLOR_CYAN), 5000);
+                        // If more devices were detected, would only display the
+                        // last one
+                        snprintf(disp_line0,
+                                 17,
+                                 "%" PRIX64,
+                                 storage.address_buff[storage.n]);
+
+                        storage.n++;
+                    }
                 }
 
-                *response_ptr = '\0';
-                owl_ws_send(response_buff);
+                if (owl_ws_is_connected()) {
+                    char *response_ptr = response_buff;
+                    for (size_t i = 0; i < storage.n; i++) {
+                        response_ptr += sprintf(response_ptr,
+                                                "%" PRIX64 "\n",
+                                                storage.address_buff[i]);
+                    }
+                    *response_ptr = '\0';
+                    sent = owl_ws_send(response_buff);
+                }
+
+                if (sent) {
+                    snprintf(disp_line1, 17, "SENT %zu", storage.n);
+                    storage.n = 0;
+                } else {
+                    snprintf(disp_line1, 17, "STORED %zu", count);
+                }
+
+                owl_display(
+                    disp_line0, disp_line1, owl_rgb(OWL_COLOR_CYAN), 5000);
+
                 break;
             case OWL_BUTTON_DOUBLE_CLICK:
+                // Move to STA WiFi mode
                 owl_led_blink(10);
                 vTaskDelay(pdMS_TO_TICKS(50));
                 owl_wifi_sta();
                 owl_led_blink_off();
                 break;
             case OWL_BUTTON_LONG_PRESS:
+                // Move to AP WiFi mode
                 owl_wifi_ap();
                 owl_led_blink(500);
                 break;
