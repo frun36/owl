@@ -123,6 +123,8 @@ void app_main(void)
     owl_onewire_init(ONEWIRE_BUS_GPIO);
     owl_button_init(BUTTON_GPIO);
 
+    vTaskDelay(pdMS_TO_TICKS(100));
+
     owl_wifi_init();
     owl_wifi_configure();
     owl_wifi_sta();

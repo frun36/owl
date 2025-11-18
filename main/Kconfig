@@ -72,6 +72,18 @@ config OWL_USE_LCD
     help
         Use LCD display (DFRobot LCD1802)
 
+config OWL_LCD_SDA
+    int "LCD display I2C SDA pin"
+    default 13
+    help
+        I2C SDA pin for the LCD display
+
+config OWL_LCD_SCK
+    int "LCD display I2C SCK pin"
+    default 14
+    help
+        I2C SCK pin for the LCD display
+
 config OWL_USE_EPAPER
     bool "Use EPAPER"
     default n

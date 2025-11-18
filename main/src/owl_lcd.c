@@ -102,8 +102,8 @@ void owl_lcd_init()
 {
     i2c_master_bus_config_t bus_config = {
         .i2c_port = I2C_NUM_0,
-        .sda_io_num = 13,
-        .scl_io_num = 14,
+        .sda_io_num = CONFIG_OWL_LCD_SDA,
+        .scl_io_num = CONFIG_OWL_LCD_SCK,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
