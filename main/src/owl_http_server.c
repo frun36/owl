@@ -34,7 +34,7 @@ static void set_ws_fd(int ws_fd)
     owl_display_update_status();
 }
 
-void owl_reset_ws_fd() {
+void owl_ws_reset_fd() {
     set_ws_fd(-1);
 }
 

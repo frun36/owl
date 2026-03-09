@@ -31,19 +31,19 @@ void owl_display_update_status()
         esp_wifi_get_config(WIFI_IF_STA, &conf);
         snprintf(line0, 17, "OWL           NC");
         strncpy(line1, (const char *) conf.sta.ssid, 16);
-        color = owl_rgb(OWL_COLOR_RED);
+        color = (owl_rgb_t){ .r = 32, .g = 0, .b = 0 };
         break;
     case OWL_WIFI_STA:
         esp_wifi_get_config(WIFI_IF_STA, &conf);
         snprintf(line0, 17, "OWL         STA%c", is_ws_connected ? '+' : '-');
         strncpy(line1, owl_wifi_get_ip_str(), 16);
-        color = owl_rgb(OWL_COLOR_WHITE);
+        color = (owl_rgb_t){ .r = 32, .g = 32, .b = 32 };
         break;
     case OWL_WIFI_AP:
         esp_wifi_get_config(WIFI_IF_AP, &conf);
         snprintf(line0, 17, "OWL          AP%c", is_ws_connected ? '+' : '-');
         strncpy(line1, (const char *) conf.ap.password, 16);
-        color = owl_rgb(OWL_COLOR_YELLOW);
+        color = (owl_rgb_t){ .r = 32, .g = 16, .b = 0 };
         break;
     case OWL_WIFI_UNKNOWN:
     default:
@@ -86,11 +86,10 @@ static void owl_display_task(void *arg)
                 display_ticks = portMAX_DELAY;
             }
         } else {
-            if (uxQueueMessagesWaiting(owl_display_event_queue) == 0) {
-                owl_lcd_set_backlight(status.color);
-                owl_lcd_write(0, status.message[0]);
-                owl_lcd_write(1, status.message[1]);
-            }
+            owl_lcd_set_backlight(status.color);
+            owl_lcd_write(0, status.message[0]);
+            owl_lcd_write(1, status.message[1]);
+            display_ticks = portMAX_DELAY;
         }
 #endif
     }

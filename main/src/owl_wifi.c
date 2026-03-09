@@ -147,7 +147,7 @@ static void wifi_event_handler(void *arg,
                         3000);
             s_try_num = 0;
             set_wifi_status(OWL_WIFI_DISCONNECTED);
-            owl_reset_ws_fd();
+            owl_ws_reset_fd();
         }
         break;
     case WIFI_EVENT_STA_CONNECTED:
@@ -290,7 +290,7 @@ void owl_wifi_configure(void)
 void owl_wifi_ap(void)
 {
     set_ip_addr(NULL);
-    owl_reset_ws_fd();
+    owl_ws_reset_fd();
 
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
@@ -303,7 +303,7 @@ void owl_wifi_ap(void)
 
 void owl_wifi_sta(void)
 {
-    owl_reset_ws_fd();
+    owl_ws_reset_fd();
 
     ESP_ERROR_CHECK(esp_wifi_stop());
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
